@@ -3,15 +3,6 @@ import os
 import logging
 from dotenv import load_dotenv
 
-from database import (
-    store_user_integration_data, 
-    get_user_integration_data, 
-    delete_user_integration_data,
-    test_database_connection,
-    get_user_count
-)
-from notion_helper import NotionAPIHelper, validate_database_schema
-
 # Load environment variables
 load_dotenv()
 
@@ -23,11 +14,36 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-change-this')
 
-# Test database connection on startup
-if not test_database_connection():
-    logger.error("❌ Database connection failed on startup")
-else:
-    logger.info("✅ Database connection successful")
+# Import database functions (this might fail if DATABASE_URL is not set)
+try:
+    from database import (
+        store_user_integration_data, 
+        get_user_integration_data, 
+        delete_user_integration_data,
+        test_database_connection,
+        get_user_count
+    )
+    from notion_helper import NotionAPIHelper, validate_database_schema
+    
+    # Test database connection on startup
+    if test_database_connection():
+        logger.info("✅ Database connection successful")
+    else:
+        logger.error("❌ Database connection failed on startup")
+        
+except Exception as e:
+    logger.error(f"❌ Failed to import database modules: {e}")
+    # Define dummy functions so the app doesn't crash
+    def store_user_integration_data(*args, **kwargs):
+        raise Exception("Database not connected")
+    def get_user_integration_data(*args, **kwargs):
+        return None
+    def delete_user_integration_data(*args, **kwargs):
+        return False
+    def test_database_connection():
+        return False
+    def get_user_count():
+        return 0
 
 @app.route('/')
 def index():
