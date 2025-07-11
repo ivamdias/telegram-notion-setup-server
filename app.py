@@ -418,6 +418,23 @@ def api_disconnect_user(telegram_id):
         logger.error(f"Error disconnecting user {telegram_id}: {e}")
         return jsonify({"error": "Failed to disconnect user"}), 500
 
+@app.route('/debug/env')
+def debug_env():
+    """Debug endpoint to check environment variables"""
+    if not app.debug:  # Only allow in development
+        return "Debug endpoint disabled in production", 403
+    
+    import os
+    env_vars = {
+        'DATABASE_URL': os.getenv('DATABASE_URL', 'NOT SET')[:50] + '...' if os.getenv('DATABASE_URL') else 'NOT SET',
+        'POSTGRES_URL': os.getenv('POSTGRES_URL', 'NOT SET'),
+        'PGURL': os.getenv('PGURL', 'NOT SET'),
+        'FLASK_SECRET_KEY': 'SET' if os.getenv('FLASK_SECRET_KEY') else 'NOT SET',
+        'All DB-related vars': [k for k in os.environ.keys() if any(term in k.upper() for term in ['DATA', 'PG', 'POSTGRES', 'DB'])]
+    }
+    
+    return jsonify(env_vars)
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
